@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 public class PlayerControl : MonoBehaviour
 {
     public float walkSpeed = 5.0f;
+    public GameObject sword;
+    public GameObject hand;
+    public int health = 5;
 
     private Animator m_Animator;
     private Vector2 m_MovementInput;
@@ -16,6 +19,9 @@ public class PlayerControl : MonoBehaviour
     {
         m_Animator = GetComponent<Animator>();
         m_Rigidbody = GetComponent<Rigidbody>();
+
+        // sword.transform.parent = hand.transform;
+        // sword.transform.position = Vector3.zero;
     }
 
     void Update()
@@ -41,5 +47,20 @@ public class PlayerControl : MonoBehaviour
 
         bool isMoving = m_MovementInput.x != 0 || m_MovementInput.y != 0;
         m_Animator.SetBool("IsWalking", isMoving);
+    }
+
+    void OnFire()
+    {
+        m_Animator.SetTrigger("AttackTrigger");
+    }
+
+    public void TakeDamage(int damage)
+    {
+        health -= damage;
+        Debug.Log("health is " + health);
+
+        if (health == 0) {
+            Destroy(gameObject);
+        }
     }
 }
