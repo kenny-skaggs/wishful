@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerControl : MonoBehaviour
+public class PlayerControl : WalkingObject
 {
     public float walkSpeed = 5.0f;
     public GameObject sword;
@@ -12,13 +12,13 @@ public class PlayerControl : MonoBehaviour
 
     private Animator m_Animator;
     private Vector2 m_MovementInput;
-    private Rigidbody m_Rigidbody;
 
     // Start is called before the first frame update
-    void Start()
+    override protected void Start()
     {
+        base.Start();
+
         m_Animator = GetComponent<Animator>();
-        m_Rigidbody = GetComponent<Rigidbody>();
 
         // sword.transform.parent = hand.transform;
         // sword.transform.position = Vector3.zero;
@@ -26,18 +26,25 @@ public class PlayerControl : MonoBehaviour
 
     void Update()
     {
-        if (m_MovementInput.x != 0 || m_MovementInput.y != 0) {
-
-            // TODO: work more with physics, figure out why it's falling over
-            // m_Rigidbody.velocity = new Vector2(m_MovementInput.x * walkSpeed, m_MovementInput.y * walkSpeed);
-
+        if (IsMoving()) {
             float angle = Vector2.SignedAngle(
                 Vector2.right,
                 new Vector2(m_MovementInput.x, -m_MovementInput.y)
             );
             transform.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
 
-            transform.Translate(Vector3.right * Time.deltaTime * walkSpeed);
+            Vector3 moveDirection = new Vector3(m_MovementInput.x, 0, m_MovementInput.y);
+
+            RaycastHit hitInfo;
+            ContactPoint? test = FindStep(out hitInfo);
+            if (test != null) {
+                ContactPoint resolved = test.GetValueOrDefault();
+                moveDirection = Vector3.ProjectOnPlane(moveDirection, hitInfo.normal).normalized * walkSpeed;
+            }
+            
+            m_Rigidbody.velocity = moveDirection * walkSpeed;
+        } else {
+            m_Rigidbody.velocity = new Vector3(0, m_Rigidbody.velocity.y, 0);
         }
     }
     
@@ -62,5 +69,10 @@ public class PlayerControl : MonoBehaviour
         if (health == 0) {
             Destroy(gameObject);
         }
+    }
+
+    protected override bool IsMoving()
+    {
+        return m_MovementInput.x != 0 || m_MovementInput.y != 0;
     }
 }
