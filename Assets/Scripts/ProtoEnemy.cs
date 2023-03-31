@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class ProtoEnemy : WalkingObject
+public class ProtoEnemy : MonoBehaviour
 {
     public float walkSpeed = 2.0f;
     public float attackRange;
@@ -12,88 +12,39 @@ public class ProtoEnemy : WalkingObject
     private Collider m_Collider;
     private bool m_IsAttacking;
     private bool m_IsPlayerInRange = false;
+    private bool m_IsRendering = false;
+    private NavMeshAgent m_NavMeshAgent;
     private GameObject m_Player;
 
-    private float elapsed = 0;
-    private NavMeshPath path;
-
-    private Queue<Vector3> pathToGoal;
-
-    override protected void Start()
+    void Start()
     {
-        base.Start();
-
         m_Player = GameObject.Find("player");
 
         m_Animator = GetComponent<Animator>();
         m_Collider = GetComponent<Collider>();
+        m_NavMeshAgent = GetComponent<NavMeshAgent>();
 
-        path = new NavMeshPath();
-        pathToGoal = new Queue<Vector3>();
+        m_NavMeshAgent.updateRotation = false;
+        ToggleRender(false);
     }
 
     void Update()
     {
         m_IsPlayerInRange = IsPlayerInAttackRange();
 
+        bool shouldBeVisible = IsVisibleToPlayer();
+        if (shouldBeVisible != m_IsRendering) {
+            m_IsRendering = shouldBeVisible;
+            ToggleRender(m_IsRendering);
+        }
+
         if (m_IsPlayerInRange) {
             Attack();
         } else if (!m_IsAttacking) {
-            NavMeshAgent agent = GetComponent<NavMeshAgent>();
-            agent.destination = m_Player.transform.position;
+            m_NavMeshAgent.destination = m_Player.transform.position;
 
-            // elapsed += Time.deltaTime;
-            // if (elapsed > 2.0f)
-            // {
-            //     elapsed = 0;
-            //     RecalculatePath();
-            // }
-
-            // if (pathToGoal.Count > 0) {
-            //     CheckAtCheckpoint();
-            //     Vector3 firstCorner = GetNextCorner();
-            //     LookAt(firstCorner);
-            //     Debug.DrawRay(firstCorner, Vector3.up, Color.yellow, 3);
-            //     Vector3 movementDirection = firstCorner - transform.position;
-
-            //     Vector3 newVelocity = new Vector3(movementDirection.x, m_Rigidbody.velocity.y, movementDirection.z).normalized * walkSpeed;
-            //     m_Rigidbody.velocity = newVelocity;
-            // }
-        }
-    }
-
-    void RecalculatePath()
-    {
-        NavMesh.CalculatePath(transform.position, m_Player.transform.position, NavMesh.AllAreas, path);
-        pathToGoal.Clear();
-
-        foreach(Vector3 corner in path.corners) {
-            pathToGoal.Enqueue(corner);
-        }
-    }
-
-    Vector3 GetNextCorner()
-    {
-        // int index = 0;
-        
-        // Vector3 nextCorner = corners[index];
-        // while ((nextCorner - transform.position).magnitude < walkSpeed) {
-        //     index += 1;
-        //     nextCorner = corners[index];
-        // }
-
-        // return nextCorner;
-
-        return pathToGoal.Peek();
-    }
-
-    void CheckAtCheckpoint()
-    {
-        Vector3 nextCorner = GetNextCorner();
-        Vector3 distanceTo = nextCorner - transform.position;
-        if (distanceTo.magnitude < attackRange) {
-            Debug.Log("deque " + nextCorner);
-            pathToGoal.Dequeue();
+            transform.LookAt(m_Player.transform, Vector3.up);
+            transform.Rotate(new Vector3(0, 90, 0), Space.Self);
         }
     }
 
@@ -161,8 +112,19 @@ public class ProtoEnemy : WalkingObject
         };
     }
 
-    protected override bool IsMoving()
+    protected void ToggleRender(bool shouldRender)
     {
-        return m_Rigidbody.velocity.x != 0 || m_Rigidbody.velocity.y != 0;
+        foreach (Transform childTransform in transform) {
+            GameObject child = childTransform.gameObject;
+            SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
+            if (renderer != null) {
+                renderer.enabled = shouldRender;
+            }
+        }
+    }
+
+    protected bool IsVisibleToPlayer()
+    {
+        return (m_Player.transform.position - transform.position).magnitude < 15;
     }
 }

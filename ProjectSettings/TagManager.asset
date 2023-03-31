@@ -9,10 +9,10 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - FieldOfView
   - Water
   - UI
-  - 
+  - NeedsLineOfSight
   - 
   - 
   - 
